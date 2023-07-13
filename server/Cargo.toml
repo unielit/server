@@ -2,7 +2,18 @@
 name = "server"
 version = "0.1.0"
 edition = "2021"
+authors = ["enwilco"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-web = "4.3.1"
+
+env_logger = "0.10.0"
+futures = "0.3.28"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+
+diesel = { version = "2.0.3", features = ["postgres", "r2d2"] }
+dotenv = "0.15.0"  
