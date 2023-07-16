@@ -7,6 +7,11 @@ use actix_web::{web, App, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 
+mod errors;
+mod models;
+mod routes;
+mod schema;
+
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub struct Server {
