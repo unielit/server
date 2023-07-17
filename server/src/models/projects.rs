@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-#[derive(Queryable, Selectable, Identifiable, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Project {
@@ -40,15 +40,34 @@ pub struct UserProject {
     pub created_at: NaiveDateTime,
 }
 
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = users_projects)]
+pub struct NewUserProject {
+    pub user_id: Uuid,
+    pub project_id: Uuid,
+}
 
-pub fn create_project(conn: &mut PgConnection, new_project: NewProject) -> Result<Project> {
+pub fn create_project(conn: &mut PgConnection, new_project: NewProject, user_token: &str) -> Result<Project> {
     use crate::schema::projects::dsl::*;
+    use crate::schema::users::dsl::*;
 
-    diesel::insert_into(projects)
-        .values(&new_project)
-        .returning(Project::as_returning())
-        .get_result::<Project>(conn)
-        .map_err(AppError::from)
+    conn.transaction(|conn| {
+        let user = users
+            .filter(last_token.eq(user_token))
+            .select(User::as_select())  
+            .first(conn)  
+            .map_err(AppError::from)?;
+
+        let project = diesel::insert_into(projects)
+            .values(&new_project)
+            .returning(Project::as_returning())
+            .get_result::<Project>(conn)
+            .map_err(AppError::from)?;
+
+        register_user_project(conn, NewUserProject { user_id: user.id, project_id: project.id })?;
+
+        Ok(project)
+    })
 }
 
 pub fn find_project<'a>(conn: &mut PgConnection, key: ProjectKey<'a>) -> Result<Project> {
@@ -98,3 +117,11 @@ pub fn update_project(conn: &mut PgConnection, project_id: Uuid, new_project: Ne
         .map_err(AppError::from)
 }
 
+fn register_user_project(conn: &mut PgConnection, user_project: NewUserProject) -> Result<usize> {
+    use crate::schema::users_projects::dsl::*;
+
+    diesel::insert_into(users_projects)
+        .values(&user_project)
+        .execute(conn)
+        .map_err(AppError::from)
+}

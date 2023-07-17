@@ -29,8 +29,7 @@ diesel::table! {
         role_id -> Uuid,
         #[max_length = 255]
         email -> Varchar,
-        #[max_length = 100]
-        last_token -> Nullable<Varchar>,
+        last_token -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

@@ -15,7 +15,7 @@ create table users (
     name varchar(200) not null,
     role_id uuid references user_roles (id) not null,
     email varchar(255) unique not null,
-    last_token varchar(100) unique default null, 
+    last_token text unique default null, 
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null
 );

@@ -1,11 +1,11 @@
 use crate::errors::AppError;
-use crate::models::Result;
 use crate::schema::*;
+use crate::models::Result;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-#[derive(Queryable, Selectable, Identifiable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Debug, PartialEq)]
 #[diesel(belongs_to(UserRole, foreign_key = role_id))]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -19,20 +19,22 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Deserialize)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {
     pub name: &'a str,
     pub role_id: Uuid,
     pub email: &'a str,
+    pub last_token: Option<&'a str>,
 }
 
 pub enum UserKey<'a> {
     ID(Uuid),
     Email(&'a str),
+    Token(&'a str),
 }
 
-#[derive(Queryable, Selectable, Identifiable, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
 #[diesel(table_name = user_roles)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct UserRole {
@@ -42,6 +44,7 @@ pub struct UserRole {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Serialize)]
 pub struct RoledUser {
     pub user: User,
     pub role: UserRole,
@@ -67,6 +70,11 @@ pub fn find_user<'a>(conn: &mut PgConnection, key: UserKey<'a>) -> Result<RoledU
 
     conn.transaction(|conn| {
         let user: User = match key {
+            UserKey::Token(token) => users
+                .filter(last_token.eq(token))
+                .select(User::as_select())
+                .first(conn)
+                .map_err(AppError::from),
             UserKey::Email(em) => users
                 .filter(email.eq(em))
                 .select(User::as_select())

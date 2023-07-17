@@ -1,16 +1,16 @@
 #[macro_use]
-extern crate diesel;
-#[macro_use]
 extern crate serde_derive;
 
 use actix_web::{web, App, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
+use actix_web_httpauth::middleware::HttpAuthentication;
 
 mod errors;
 mod models;
 mod routes;
 mod schema;
+mod auth;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -24,6 +24,9 @@ impl Server {
     }
 
     pub async fn run(&self, database_url: String) -> std::io::Result<()> {
+        // Middleware for checking our generated tokens from OAuth 2.0.
+        // Could be used in future
+        let _auth_middleware = HttpAuthentication::bearer(routes::validator);
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let pool = r2d2::Pool::builder()
             .build(manager)
@@ -33,7 +36,10 @@ impl Server {
 
         HttpServer::new(move || {
             App::new()
+                // .wrap(auth_middleware.clone())
                 .app_data(web::Data::new(pool.clone()))
+                .configure(routes::users::configure)
+                .configure(routes::projects::configure)
         })
         .bind(("127.0.0.1", self.port))?
         .run()
