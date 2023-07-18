@@ -16,11 +16,11 @@ pub struct Project {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, Serialize, Deserialize, AsChangeset)]
 #[diesel(table_name = projects)]
-pub struct NewProject<'a> {
-    pub name: &'a str,
-    pub repository_url: &'a str,
+pub struct NewProject {
+    pub name: String,
+    pub repository_url: String,
 }
 
 pub enum ProjectKey<'a> {

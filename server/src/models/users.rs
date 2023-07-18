@@ -19,7 +19,7 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Deserialize, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {
     pub name: &'a str,
@@ -30,7 +30,7 @@ pub struct NewUser<'a> {
 
 pub enum UserKey<'a> {
     ID(Uuid),
-    Email(&'a str),
+    Name(&'a str),
     Token(&'a str),
 }
 
@@ -75,8 +75,8 @@ pub fn find_user<'a>(conn: &mut PgConnection, key: UserKey<'a>) -> Result<RoledU
                 .select(User::as_select())
                 .first(conn)
                 .map_err(AppError::from),
-            UserKey::Email(em) => users
-                .filter(email.eq(em))
+            UserKey::Name(n) => users
+                .filter(name.eq(n))
                 .select(User::as_select())
                 .first(conn)
                 .map_err(AppError::from),
@@ -92,16 +92,36 @@ pub fn find_user<'a>(conn: &mut PgConnection, key: UserKey<'a>) -> Result<RoledU
     })
 }
 
+pub fn update_user(
+    conn: &mut PgConnection,
+    user_id: Uuid,
+    new_user: NewUser,
+) -> Result<RoledUser> {
+    use crate::schema::users::dsl::*;
+
+    conn.transaction(|conn| {
+        let user = diesel::update(users)
+            .filter(id.eq(user_id))
+            .set(&new_user)
+            .returning(User::as_returning())
+            .get_result(conn)
+            .map_err(AppError::from)?;
+
+        let role = find_role(conn, user.role_id)?;
+        Ok(RoledUser { user, role })
+    })
+}
+
 pub fn update_user_token(
     conn: &mut PgConnection,
-    user_email: &str,
+    user_id: Uuid,
     token: &str,
 ) -> Result<RoledUser> {
     use crate::schema::users::dsl::*;
 
     conn.transaction(|conn| {
         let user = diesel::update(users)
-            .filter(email.eq(user_email))
+            .filter(id.eq(user_id))
             .set(last_token.eq(token))
             .returning(User::as_returning())
             .get_result(conn)
