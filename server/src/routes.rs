@@ -1,13 +1,15 @@
 use crate::{auth, errors::AppError, models::Result};
 use actix_web::HttpRequest;
-use actix_web::{dev::ServiceRequest, Error, HttpResponse, Responder};
+use actix_web::{dev::ServiceRequest, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
 
 pub(super) mod projects;
 pub(super) mod users;
+pub(super) mod repositories;
+pub(super) mod designs;
 
-fn success<T>(res: T) -> impl Responder
+fn success<T>(res: T) -> HttpResponse
 where
     T: serde::Serialize,
 {

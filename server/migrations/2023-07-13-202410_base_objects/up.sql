@@ -5,38 +5,62 @@ create table user_roles (
     updated_at timestamp default now() not null
 );
 
-create trigger update_updated_at_trigger
-    before update on user_roles
-    for each row
-    execute function update_updated_at();
+create trigger update_updated_at_trigger before
+update
+    on user_roles for each row execute function update_updated_at();
 
 create table users (
-    id uuid default gen_random_uuid() primary key ,
+    id uuid default gen_random_uuid() primary key,
     name varchar(200) not null,
     role_id uuid references user_roles (id) not null,
     email varchar(255) unique not null,
-    last_token text unique default null, 
+    last_token text unique default null,
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null
 );
 
-create trigger update_updated_at_trigger
-    before update on users
-    for each row
-    execute function update_updated_at();
+create trigger update_updated_at_trigger before
+update
+    on users for each row execute function update_updated_at();
+
+create table repositories (
+    id uuid default gen_random_uuid() primary key,
+    name varchar(50) not null,
+    owner varchar(50) not null,
+    is_organization boolean not null,
+    html_url text not null,
+    created_at timestamp default now() not null,
+    updated_at timestamp default now() not null,
+    unique (name, owner, is_organization)
+);
+
+create trigger update_updated_at_trigger before
+update
+    on repositories for each row execute function update_updated_at();
+
+create table designs (
+    id uuid default gen_random_uuid() primary key,
+    data jsonb default '{}' not null,
+    created_at timestamp default now() not null,
+    updated_at timestamp default now() not null
+);
+
+create trigger update_updated_at_trigger before
+update
+    on designs for each row execute function update_updated_at();
 
 create table projects (
     id uuid default gen_random_uuid() primary key,
     name varchar(200) not null,
-    repository_url text not null,
+    repo_id uuid references repositories (id),
+    design_id uuid references designs (id) not null,
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null
 );
 
-create trigger update_updated_at_trigger
-    before update on projects
-    for each row
-    execute function update_updated_at();
+create trigger update_updated_at_trigger before
+update
+    on projects for each row execute function update_updated_at();
 
 create table users_projects (
     user_id uuid references users (id) not null,
@@ -47,7 +71,6 @@ create table users_projects (
     updated_at timestamp default now() not null
 );
 
-create trigger update_updated_at_trigger
-    before update on users_projects
-    for each row
-    execute function update_updated_at();
+create trigger update_updated_at_trigger before
+update
+    on users_projects for each row execute function update_updated_at();

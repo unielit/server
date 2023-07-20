@@ -1,26 +1,37 @@
 use crate::errors::AppError;
-use crate::models::{Result, users::User};
+use crate::models::{Result, users::User, repositories::Repository, designs::*};
 use crate::schema::*;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Associations, Debug, PartialEq)]
+#[diesel(belongs_to(Repository, foreign_key = repo_id))]
+#[diesel(belongs_to(Design))]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Project {
     pub id: Uuid,
     pub name: String,
-    pub repository_url: String,
+    pub repo_id: Option<Uuid>,
+    pub design_id: Uuid,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Insertable, Serialize, Deserialize, AsChangeset)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = projects)]
-pub struct NewProject {
-    pub name: String,
-    pub repository_url: String,
+pub struct NewProject<'a> {
+    pub name: &'a str,
+    pub repo_id: Option<Uuid>,
+    pub design_id: Uuid,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = projects)]
+pub struct UpdateProject<'a> {
+    pub name: &'a str,
+    pub repo_id: Option<Uuid>,
 }
 
 pub enum ProjectKey<'a> {
@@ -47,24 +58,24 @@ pub struct NewUserProject {
     pub project_id: Uuid,
 }
 
-pub fn create_project(conn: &mut PgConnection, new_project: NewProject, user_token: &str) -> Result<Project> {
+pub fn create_project(conn: &mut PgConnection, project_name: &str, repository_id: Option<Uuid>, user_id: Uuid) -> Result<Project> {
     use crate::schema::projects::dsl::*;
-    use crate::schema::users::dsl::*;
 
     conn.transaction(|conn| {
-        let user = users
-            .filter(last_token.eq(user_token))
-            .select(User::as_select())  
-            .first(conn)  
-            .map_err(AppError::from)?;
+        let design = crate::models::designs::create_design(conn)?;
+        let insert_project = NewProject{
+            name: project_name,
+            repo_id: repository_id,
+            design_id: design.id,
+        };
 
         let project = diesel::insert_into(projects)
-            .values(&new_project)
+            .values(&insert_project)
             .returning(Project::as_returning())
             .get_result::<Project>(conn)
             .map_err(AppError::from)?;
 
-        register_user_project(conn, NewUserProject { user_id: user.id, project_id: project.id })?;
+        register_user_project(conn, NewUserProject { user_id, project_id: project.id })?;
 
         Ok(project)
     })
@@ -95,8 +106,7 @@ pub fn get_user_projects(conn: &mut PgConnection, user_token: &str) -> Result<Ve
         let user = users
             .filter(last_token.eq(user_token))
             .select(User::as_select())  
-            .first(conn)  
-            .map_err(AppError::from)?;
+            .first::<User>(conn)?;
 
         UserProject::belonging_to(&user)
             .inner_join(projects)
@@ -106,7 +116,7 @@ pub fn get_user_projects(conn: &mut PgConnection, user_token: &str) -> Result<Ve
     })
 }
 
-pub fn update_project(conn: &mut PgConnection, project_id: Uuid, new_project: NewProject) -> Result<Project> {
+pub fn update_project(conn: &mut PgConnection, project_id: Uuid, new_project: UpdateProject) -> Result<Project> {
     use crate::schema::projects::dsl::*;
 
     diesel::update(projects)

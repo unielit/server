@@ -21,8 +21,12 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(web::resource("").route(web::post().to(create_user)))
             .service(web::resource("/find").route(web::get().to(find_user_by_token)))
             .service(web::resource("/find/{name}").route(web::get().to(find_user)))
-            .service(web::resource("/{id}").route(web::get().to(get_user)))
-            .service(web::resource("/{id}").route(web::patch().to(update_user)))
+            .service(web::resource("/roles").route(web::get().to(get_user_roles)))
+            .service(
+                web::resource("/{id}")
+                    .route(web::patch().to(update_user))
+                    .route(web::get().to(get_user)),
+            )
             .service(web::resource("/{id}/token").route(web::patch().to(update_user_token))),
     );
 }
@@ -121,6 +125,16 @@ async fn update_user_token(
         let mut conn = pool.get()?;
 
         users::update_user_token(&mut conn, id.into_inner(), &token)
+    })
+    .await?
+    .map(success)
+}
+
+async fn get_user_roles(pool: web::Data<DbPool>) -> Result<impl Responder> {
+    web::block(move || {
+        let mut conn = pool.get()?;
+
+        users::get_user_roles(&mut conn)
     })
     .await?
     .map(success)

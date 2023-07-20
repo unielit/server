@@ -11,6 +11,7 @@ mod models;
 mod routes;
 mod schema;
 mod auth;
+mod services;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -40,6 +41,8 @@ impl Server {
                 .app_data(web::Data::new(pool.clone()))
                 .configure(routes::users::configure)
                 .configure(routes::projects::configure)
+                .configure(routes::designs::configure)
+                .configure(routes::repositories::configure)
         })
         .bind(("127.0.0.1", self.port))?
         .run()

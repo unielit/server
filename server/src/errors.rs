@@ -6,6 +6,7 @@ use actix_web::{
 use diesel::result::DatabaseErrorKind::UniqueViolation;
 use diesel::result::Error::{DatabaseError, NotFound};
 use std::fmt;
+use reqwest;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -18,6 +19,11 @@ pub enum AppError {
     AuthError,
     HeaderParse(String),
     JWKSFetchError,
+    PermissionError,
+    OutsideRequestError(String),
+    UrlParse(String),
+    JsonParse(String),
+    InvalidHeaderValue(String),
 }
 
 #[derive(Debug, Serialize)]
@@ -37,6 +43,11 @@ impl fmt::Display for AppError {
             AppError::AuthError =>  write!(f, "Unauthorized request. Pass user access token in request header."),
             AppError::HeaderParse(e) => write!(f, "Header parse error: {:?}", e),
             AppError::JWKSFetchError => write!(f, "Could not fetch JWKS"),
+            AppError::PermissionError => write!(f, "User authorized by token doesn't have needed access permission."),
+            AppError::OutsideRequestError(e) => write!(f, "Outside HTTP Request failed. Error: {:?}", e),
+            AppError::UrlParse(e) => write!(f, "URL parse error: {:?}", e),
+            AppError::JsonParse(e) => write!(f, "JSON parse error: {:?}", e),
+            AppError::InvalidHeaderValue(e) => write!(f, "Invalid header value, error: {:?}", e),
         }
     }
 }
@@ -58,7 +69,12 @@ impl actix_web::ResponseError for AppError {
             AppError::UuidParseError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::AuthError => StatusCode::UNAUTHORIZED,
             AppError::HeaderParse(_e) => StatusCode::BAD_REQUEST,
-            AppError::JWKSFetchError => StatusCode::BAD_REQUEST
+            AppError::JWKSFetchError => StatusCode::BAD_REQUEST,
+            AppError::PermissionError => StatusCode::FORBIDDEN,
+            AppError::OutsideRequestError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::UrlParse(_e) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::JsonParse(_e) => StatusCode::BAD_REQUEST,
+            AppError::InvalidHeaderValue(_e) => StatusCode::BAD_REQUEST,
         }
     }
 }
@@ -94,5 +110,29 @@ impl From<uuid::Error> for AppError {
 impl From<ToStrError> for AppError {
     fn from(e: ToStrError) -> Self {
         AppError::HeaderParse(e.to_string())
+    }
+}
+
+impl From<reqwest::Error> for AppError {
+    fn from(e: reqwest::Error) -> Self {
+        AppError::OutsideRequestError(e.to_string())
+    }
+}
+
+impl From<url::ParseError> for AppError {
+    fn from(e: url::ParseError) -> Self {
+        AppError::UrlParse(e.to_string())
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(e: serde_json::Error) -> Self {
+        AppError::JsonParse(e.to_string())
+    }
+}
+
+impl From<reqwest::header::InvalidHeaderValue> for AppError {
+    fn from(e: reqwest::header::InvalidHeaderValue) -> Self {
+        AppError::InvalidHeaderValue(e.to_string())
     }
 }

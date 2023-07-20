@@ -1,11 +1,35 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    designs (id) {
+        id -> Uuid,
+        data -> Jsonb,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     projects (id) {
         id -> Uuid,
         #[max_length = 200]
         name -> Varchar,
-        repository_url -> Text,
+        repo_id -> Nullable<Uuid>,
+        design_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    repositories (id) {
+        id -> Uuid,
+        #[max_length = 50]
+        name -> Varchar,
+        #[max_length = 50]
+        owner -> Varchar,
+        is_organization -> Bool,
+        html_url -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -45,12 +69,16 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(projects -> designs (design_id));
+diesel::joinable!(projects -> repositories (repo_id));
 diesel::joinable!(users -> user_roles (role_id));
 diesel::joinable!(users_projects -> projects (project_id));
 diesel::joinable!(users_projects -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    designs,
     projects,
+    repositories,
     user_roles,
     users,
     users_projects,

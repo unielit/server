@@ -141,3 +141,12 @@ fn find_role(conn: &mut PgConnection, role_id: Uuid) -> Result<UserRole> {
         .first(conn)
         .map_err(AppError::from)
 }
+
+pub fn get_user_roles(conn: &mut PgConnection) -> Result<Vec<UserRole>> {
+    use crate::schema::user_roles::dsl::*;
+
+    user_roles
+        .select(UserRole::as_select())
+        .load(conn)
+        .map_err(AppError::from)
+}

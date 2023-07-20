@@ -1,5 +1,8 @@
 use crate::{
-    models::{projects, projects::NewProject, Result},
+    models::{
+        projects::{self, UpdateProject},
+        users, Result,
+    },
     routes::success,
     DbPool,
 };
@@ -8,19 +11,31 @@ use uuid::*;
 
 use super::parse_auth_token;
 
+#[derive(Deserialize, Debug)]
+struct InputProject {
+    name: String,
+    repo_id: Option<Uuid>,
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/projects")
-            .service(web::resource("").route(web::post().to(create_project)))
-            .service(web::resource("/{id}").route(web::get().to(get_project)))
-            .service(web::resource("/{id}").route(web::patch().to(update_project)))
-            .service(web::resource("/find/{name}").route(web::get().to(find_project)))
-            .service(web::resource("/find/all").route(web::get().to(get_user_projects)))
+            .service(
+                web::resource("")
+                    .route(web::get().to(get_user_projects))
+                    .route(web::post().to(create_project)),
+            )
+            .service(
+                web::resource("/{id}")
+                    .route(web::get().to(get_project))
+                    .route(web::patch().to(update_project)),
+            )
+            .service(web::resource("/find/{name}").route(web::get().to(find_project))),
     );
 }
 
 async fn create_project(
-    project: web::Json<NewProject>,
+    input: web::Json<InputProject>,
     pool: web::Data<DbPool>,
     req: HttpRequest,
 ) -> Result<impl Responder> {
@@ -28,12 +43,9 @@ async fn create_project(
 
     web::block(move || {
         let mut conn = pool.get()?;
+        let roled_user = users::find_user(&mut conn, users::UserKey::Token(&token))?;
 
-        projects::create_project(
-            &mut conn,
-            project.into_inner(),
-            &token,
-        )
+        projects::create_project(&mut conn, &input.name, input.repo_id, roled_user.user.id)
     })
     .await?
     .map(success)
@@ -71,14 +83,21 @@ async fn get_user_projects(req: HttpRequest, pool: web::Data<DbPool>) -> Result<
     .map(success)
 }
 
-async fn update_project(id: web::Path<Uuid>, project: web::Json<NewProject>, pool: web::Data<DbPool>) -> Result<impl Responder> {
+async fn update_project(
+    id: web::Path<Uuid>,
+    project: web::Json<InputProject>,
+    pool: web::Data<DbPool>,
+) -> Result<impl Responder> {
     web::block(move || {
         let mut conn = pool.get()?;
 
         projects::update_project(
             &mut conn,
             id.into_inner(),
-            project.into_inner(),
+            UpdateProject {
+                name: &project.name,
+                repo_id: project.repo_id,
+            },
         )
     })
     .await?
