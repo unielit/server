@@ -3,9 +3,10 @@ use crate::models::Result;
 use crate::schema::*;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Insertable, Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
+#[derive(Insertable, Queryable, Selectable, Identifiable, Serialize, ToSchema, Debug, PartialEq)]
 #[diesel(table_name = designs)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Design {

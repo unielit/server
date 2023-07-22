@@ -4,9 +4,10 @@ use crate::schema::*;
 use chrono::NaiveDateTime;
 use diesel::dsl::exists;
 use diesel::prelude::*;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, ToSchema, Debug, PartialEq)]
 #[diesel(table_name = repositories)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Repository {

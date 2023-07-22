@@ -3,9 +3,10 @@ use crate::schema::*;
 use crate::models::Result;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, ToSchema, Debug, PartialEq)]
 #[diesel(belongs_to(UserRole, foreign_key = role_id))]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -34,7 +35,7 @@ pub enum UserKey<'a> {
     Token(&'a str),
 }
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, ToSchema, Debug, PartialEq)]
 #[diesel(table_name = user_roles)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct UserRole {
@@ -44,7 +45,7 @@ pub struct UserRole {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RoledUser {
     pub user: User,
     pub role: UserRole,
@@ -94,14 +95,14 @@ pub fn find_user<'a>(conn: &mut PgConnection, key: UserKey<'a>) -> Result<RoledU
 
 pub fn update_user(
     conn: &mut PgConnection,
-    user_id: Uuid,
+    token: &str,
     new_user: NewUser,
 ) -> Result<RoledUser> {
     use crate::schema::users::dsl::*;
 
     conn.transaction(|conn| {
         let user = diesel::update(users)
-            .filter(id.eq(user_id))
+            .filter(last_token.eq(token))
             .set(&new_user)
             .returning(User::as_returning())
             .get_result(conn)

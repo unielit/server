@@ -4,8 +4,9 @@ use crate::schema::*;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use uuid::Uuid;
+use utoipa::ToSchema;
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Associations, Debug, PartialEq)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Associations, ToSchema, Debug, PartialEq)]
 #[diesel(belongs_to(Repository, foreign_key = repo_id))]
 #[diesel(belongs_to(Design))]
 #[diesel(table_name = projects)]

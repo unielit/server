@@ -2,15 +2,18 @@
 extern crate serde_derive;
 
 use actix_web::{web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use actix_web_httpauth::middleware::HttpAuthentication;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
+mod apidoc;
+mod auth;
 mod errors;
 mod models;
 mod routes;
 mod schema;
-mod auth;
 mod services;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -28,11 +31,12 @@ impl Server {
         // Middleware for checking our generated tokens from OAuth 2.0.
         // Could be used in future
         let _auth_middleware = HttpAuthentication::bearer(routes::validator);
+        let openapi = apidoc::ApiDoc::openapi();
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let pool = r2d2::Pool::builder()
             .build(manager)
             .expect("Failed to create PostgreSQL connection pool");
-        
+
         println!("Starting http server: 127.0.0.1:{}", self.port);
 
         HttpServer::new(move || {
@@ -43,6 +47,10 @@ impl Server {
                 .configure(routes::projects::configure)
                 .configure(routes::designs::configure)
                 .configure(routes::repositories::configure)
+                .service(
+                    SwaggerUi::new("/swagger-ui/{_:.*}")
+                        .url("/api-docs/openapi.json", openapi.clone()),
+                )
         })
         .bind(("127.0.0.1", self.port))?
         .run()

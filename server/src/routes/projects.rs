@@ -8,11 +8,12 @@ use crate::{
 };
 use actix_web::{web, HttpRequest, Responder};
 use uuid::*;
+use utoipa::ToSchema;
 
 use super::parse_auth_token;
 
-#[derive(Deserialize, Debug)]
-struct InputProject {
+#[derive(Deserialize, ToSchema, Debug)]
+pub struct InputProject {
     name: String,
     repo_id: Option<Uuid>,
 }
@@ -34,6 +35,26 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     );
 }
 
+/// Create a project
+///
+/// A User Bearer access token should be provided to create a record. 
+/// The access token provided must be associated with a user account.
+#[utoipa::path(
+    post,
+    context_path = "/projects",
+    path = "",
+    tag = "Projects",
+    responses(
+        (status = OK, body = RoledUser),
+        (status = BAD_REQUEST, description = "Unique constaint violation."),
+        (status = NOT_FOUND, description = "User is not found by provided token."),
+        (status = UNAUTHORIZED, description = "User is not authorized. Pass user's access token.")
+    ),
+    request_body(content = InputProject, description = "Input Project in JSON format", content_type = "application/json"),
+    security(
+        ("http" = [])
+    )
+)]
 async fn create_project(
     input: web::Json<InputProject>,
     pool: web::Data<DbPool>,
@@ -51,6 +72,22 @@ async fn create_project(
     .map(success)
 }
 
+/// Find a user by name
+///
+#[utoipa::path(
+    get,
+    context_path = "/projects",
+    path = "/find/{name}",
+    tag = "Projects",
+    params(
+        ("name" = String, Path, description = "Project name"),
+    ),
+    responses(
+        (status = OK, body = Project),
+        (status = BAD_REQUEST, description = "Incorrect name format"),
+        (status = NOT_FOUND, description = "Project is not found by provided name.")
+    )
+)]
 async fn find_project(name: web::Path<String>, pool: web::Data<DbPool>) -> Result<impl Responder> {
     web::block(move || {
         let mut conn = pool.get()?;
@@ -61,6 +98,22 @@ async fn find_project(name: web::Path<String>, pool: web::Data<DbPool>) -> Resul
     .map(success)
 }
 
+/// Get a project by id
+///
+#[utoipa::path(
+    get,
+    context_path = "/projects",
+    path = "/{id}",
+    tag = "Projects",
+    params(
+        ("id" = Uuid, Path, description = "Project record id in database"),
+    ),
+    responses(
+        (status = OK, body = Project),
+        (status = BAD_REQUEST, description = "Incorrect data format"),
+        (status = NOT_FOUND, description = "Project is not found by provided id"),
+    )
+)]
 async fn get_project(id: web::Path<Uuid>, pool: web::Data<DbPool>) -> Result<impl Responder> {
     web::block(move || {
         let mut conn = pool.get()?;
@@ -71,6 +124,25 @@ async fn get_project(id: web::Path<Uuid>, pool: web::Data<DbPool>) -> Result<imp
     .map(success)
 }
 
+/// Get the projects by user token
+///
+/// A User Bearer access token should be provided to create a record. 
+/// The access token provided must be associated with a user account.
+#[utoipa::path(
+    get,
+    context_path = "/projects",
+    path = "",
+    tag = "Projects",
+    responses(
+        (status = OK, body = Vec<Project>),
+        (status = BAD_REQUEST, description = "Incorrect data format"),
+        (status = NOT_FOUND, description = "User is not found by provided token."),
+        (status = UNAUTHORIZED, description = "User is not authorized. Pass user's access token.")
+    ),
+    security(
+        ("http" = [])
+    )
+)]
 async fn get_user_projects(req: HttpRequest, pool: web::Data<DbPool>) -> Result<impl Responder> {
     let token = parse_auth_token(req)?;
 
@@ -83,6 +155,29 @@ async fn get_user_projects(req: HttpRequest, pool: web::Data<DbPool>) -> Result<
     .map(success)
 }
 
+/// Update a project
+///
+/// A User Bearer access token should be provided to create a record. 
+/// The access token provided must be associated with a user account.
+#[utoipa::path(
+    patch,
+    context_path = "/projects",
+    path = "/{id}",
+    tag = "Projects",
+    params(
+        ("id" = Uuid, Path, description = "Project record id in database"),
+    ),
+    request_body(content = InputProject, description = "Input Project in JSON format", content_type = "application/json"),
+    responses(
+        (status = OK, body = Project),
+        (status = BAD_REQUEST, description = "Incorrect data format"),
+        (status = NOT_FOUND, description = "Either User is not found by provided token or project record to update."),
+        (status = UNAUTHORIZED, description = "User is not authorized. Pass user's access token.")
+    ),
+    security(
+        ("http" = [])
+    )
+)]
 async fn update_project(
     id: web::Path<Uuid>,
     project: web::Json<InputProject>,

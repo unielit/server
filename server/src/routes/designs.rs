@@ -4,7 +4,8 @@ use crate::{
     routes::success,
     DbPool,
 };
-use actix_web::{web, HttpRequest, Responder};
+use actix_web::{ web, HttpRequest, Responder};
+use utoipa::{self};
 use uuid::*;
 
 use super::parse_auth_token;
@@ -19,6 +20,30 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     );
 }
 
+/// Get a design 
+/// 
+/// A User Bearer access token should be provided to create a record. 
+/// The access token provided must be associated with a user account.
+/// 
+/// The authenticated user must have access to design's project.
+#[utoipa::path(
+    get,
+    context_path = "/designs",
+    path = "/{id}",
+    tag = "Designs",
+    responses(
+        (status = OK, body = Design),
+        (status = NOT_FOUND),
+        (status = FORBIDDEN, description = "Authorized user doesn't have required permission."),
+        (status = UNAUTHORIZED, description = "User is not authorized. Pass user's access token.")
+    ),
+    params(
+        ("id" = Uuid, Path, description = "Design record id in the database"),
+    ),
+    security(
+        ("http" = [])
+    )
+)]
 async fn get_design(
     id: web::Path<Uuid>,
     pool: web::Data<DbPool>,
@@ -40,6 +65,31 @@ async fn get_design(
     .map(success)
 }
 
+/// Update a design 
+/// 
+/// A User Bearer access token should be provided to create a record. 
+/// The access token provided must be associated with a user account.
+/// 
+/// The authenticated user must have access to design's project.
+#[utoipa::path(
+    patch,
+    context_path = "/designs",
+    path = "/{id}",
+    tag = "Designs",
+    responses(
+        (status = OK, body = Design),
+        (status = NOT_FOUND),
+        (status = FORBIDDEN, description = "Authorized user doesn't have required permission."),
+        (status = UNAUTHORIZED, description = "User is not authorized. Pass user's access token.")
+    ),
+    request_body(content = serde_json::Value, description = "Design structure in JSON format", content_type = "application/json"),
+    params(
+        ("id" = Uuid, Path, description = "Design record id in the database"),
+    ),
+    security(
+        ("http" = [])
+    )
+)]
 async fn update_design(
     id: web::Path<Uuid>,
     data: web::Json<serde_json::Value>,
