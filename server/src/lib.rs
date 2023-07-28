@@ -5,6 +5,7 @@ use actix_web::{web, App, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -15,6 +16,8 @@ mod models;
 mod routes;
 mod schema;
 mod services;
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -37,6 +40,8 @@ impl Server {
             .build(manager)
             .expect("Failed to create PostgreSQL connection pool");
 
+        run_migrations(&pool);
+
         println!("Starting http server: 127.0.0.1:{}", self.port);
 
         HttpServer::new(move || {
@@ -56,4 +61,13 @@ impl Server {
         .run()
         .await
     }
+}
+
+fn run_migrations(pool: &DbPool) {
+    let mut conn = pool
+        .get()
+        .expect("Failed to get connection to PostgreSQL Db pool during migrations");
+    
+    conn.run_pending_migrations(MIGRATIONS)
+        .expect("Failed to run diesel PostgreSQL migrations");
 }
