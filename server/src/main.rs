@@ -9,6 +9,6 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let server = server::Server::new(8181);
+    let server = server::Server::new(3000);
     server.run(database_url).await
 }

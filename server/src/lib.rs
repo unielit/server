@@ -57,7 +57,7 @@ impl Server {
                         .url("/api-docs/openapi.json", openapi.clone()),
                 )
         })
-        .bind(("127.0.0.1", self.port))?
+        .bind(("0.0.0.0", self.port))?
         .run()
         .await
     }
@@ -67,7 +67,7 @@ fn run_migrations(pool: &DbPool) {
     let mut conn = pool
         .get()
         .expect("Failed to get connection to PostgreSQL Db pool during migrations");
-    
+
     conn.run_pending_migrations(MIGRATIONS)
         .expect("Failed to run diesel PostgreSQL migrations");
 }
