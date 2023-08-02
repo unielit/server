@@ -51,7 +51,6 @@ COPY --from=build /lib/${ARCH}-linux-gnu/libkeyutils.so* /lib/${ARCH}-linux-gnu/
 
 # Application files
 COPY --from=build /usr/local/cargo/bin/server /usr/local/bin/server
-COPY --from=build /usr/src/server/.env /.env
 
 ENTRYPOINT ["server"]
 EXPOSE 3000
