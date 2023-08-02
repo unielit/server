@@ -6,8 +6,37 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Build and test code
+      run: |
+        cargo build --verbose
+        cargo test --verbose
+
   build:
     runs-on: ubuntu-latest
+    needs:
+      - test
     strategy:
       fail-fast: false
       matrix:
