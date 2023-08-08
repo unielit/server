@@ -15,7 +15,7 @@ use super::parse_auth_token;
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UserInput {
     name: String,
-    role_id: Uuid,
+    // role_id: Uuid,
     email: String,
 }
 
@@ -29,7 +29,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             )
             .service(web::resource("/find").route(web::get().to(find_user_by_token)))
             .service(web::resource("/find/{name}").route(web::get().to(find_user)))
-            .service(web::resource("/roles").route(web::get().to(get_user_roles)))
+            // .service(web::resource("/roles").route(web::get().to(get_user_roles)))
             .service(web::resource("/{id}").route(web::get().to(get_user)))
             .service(web::resource("/{id}/token").route(web::patch().to(update_user_token))),
     );
@@ -61,6 +61,7 @@ async fn create_user(
     req: HttpRequest,
 ) -> Result<impl Responder> {
     let token: String = parse_auth_token(req)?;
+    let user = user.into_inner();
 
     web::block(move || {
         let mut conn = pool.get()?;
@@ -68,10 +69,10 @@ async fn create_user(
         users::create_user(
             &mut conn,
             NewUser {
-                name: &user.name,
-                role_id: user.role_id,
-                email: &user.email,
-                last_token: Some(&token),
+                name: user.name,
+                // role_id: user.role_id,
+                email: user.email,
+                access_token: Some(token),
             },
         )
     })
@@ -197,10 +198,10 @@ async fn update_user(
             &mut conn,
             &token,
             NewUser {
-                name: &user.name,
-                role_id: user.role_id,
-                email: &user.email,
-                last_token: Some(&token),
+                name: user.name,
+                // role_id: user.role_id,
+                email: user.email,
+                access_token: Some(token.clone()),
             },
         )
     })
@@ -246,6 +247,7 @@ async fn update_user_token(
     .map(success)
 }
 
+/* 
 /// Get all user roles
 ///
 /// Provides all available roles for any user
@@ -267,3 +269,4 @@ async fn get_user_roles(pool: web::Data<DbPool>) -> Result<impl Responder> {
     .await?
     .map(success)
 }
+*/

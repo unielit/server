@@ -10,7 +10,6 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 mod apidoc;
-mod auth;
 mod errors;
 mod models;
 mod routes;
@@ -41,8 +40,8 @@ impl Server {
             .expect("Failed to create PostgreSQL connection pool");
 
         run_migrations(&pool);
-
-        println!("Starting http server: 127.0.0.1:{}", self.port);
+        
+        println!("Starting http server: localhost:{}", self.port);
 
         HttpServer::new(move || {
             App::new()
@@ -52,6 +51,7 @@ impl Server {
                 .configure(routes::projects::configure)
                 .configure(routes::designs::configure)
                 .configure(routes::repositories::configure)
+                .configure(routes::auth::github::configure)
                 .service(
                     SwaggerUi::new("/swagger-ui/{_:.*}")
                         .url("/api-docs/openapi.json", openapi.clone()),

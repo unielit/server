@@ -105,7 +105,7 @@ pub fn get_user_projects(conn: &mut PgConnection, user_token: &str) -> Result<Ve
 
     conn.transaction(|conn| {
         let user = users
-            .filter(last_token.eq(user_token))
+            .filter(access_token.eq(user_token))
             .select(User::as_select())  
             .first::<User>(conn)?;
 

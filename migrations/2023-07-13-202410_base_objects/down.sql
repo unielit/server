@@ -10,8 +10,11 @@ drop table designs;
 drop trigger update_updated_at_trigger on repositories;
 drop table repositories;
 
+drop trigger update_updated_at_trigger on user_refresh_tokens;
+drop table user_refresh_tokens;
+
 drop trigger update_updated_at_trigger on users;
 drop table users;
 
-drop trigger update_updated_at_trigger on user_roles;
-drop table user_roles;
+-- drop trigger update_updated_at_trigger on user_roles;
+-- drop table user_roles;

@@ -1,13 +1,15 @@
-use crate::{auth, errors::AppError, models::Result};
+use crate::{errors::AppError, models::Result};
 use actix_web::HttpRequest;
-use actix_web::{dev::ServiceRequest, Error, HttpResponse};
+use actix_web::{dev::ServiceRequest, Error, HttpResponse, http::header};
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
+use mime;
 
 pub(super) mod projects;
 pub(super) mod users;
 pub(super) mod repositories;
 pub(super) mod designs;
+pub(super) mod auth;
 
 fn success<T>(res: T) -> HttpResponse
 where

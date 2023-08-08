@@ -15,19 +15,20 @@ use utoipa::{
         routes::users::get_user,
         routes::users::update_user,
         routes::users::update_user_token,
-        routes::users::get_user_roles,
+        // routes::users::get_user_roles,
         routes::repositories::create_repo,
         routes::projects::create_project,
         routes::projects::find_project,
         routes::projects::get_project,
         routes::projects::get_user_projects,
         routes::projects::update_project,
+        routes::auth::github::generate_access_token,
     ),
     components(
         schemas(
             models::designs::Design, 
             models::users::RoledUser, 
-            models::users::UserRole,
+            // models::users::UserRole,
             models::users::User,
             routes::users::UserInput,
             models::repositories::Repository,
@@ -41,6 +42,7 @@ use utoipa::{
         (name = "Users", description = "Users management endpoints."),
         (name = "Repositories", description = "Repositories management endpoints."),
         (name = "Projects", description = "Projects management endpoints."),
+        (name = "Auth Github", description = "Github Auth management endpoints."),
     ),
     modifiers(&SecurityAddon)
 )]

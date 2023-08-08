@@ -1,6 +1,8 @@
 use crate::{errors::AppError, models::Result};
 use alcoholic_jwt::{token_kid, validate, Validation, JWKS};
 
+pub mod github;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: String,

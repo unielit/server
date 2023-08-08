@@ -5,8 +5,8 @@ use actix_web::{
 };
 use diesel::result::DatabaseErrorKind::UniqueViolation;
 use diesel::result::Error::{DatabaseError, NotFound};
-use std::fmt;
 use reqwest;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -23,7 +23,12 @@ pub enum AppError {
     OutsideRequestError(String),
     UrlParse(String),
     JsonParse(String),
+    UrlEncodedParse(String),
     InvalidHeaderValue(String),
+    HexParse(String),
+    CryptoError(String),
+    GithubAuthError(String),
+    GithubAPIError(String),
 }
 
 #[derive(Debug, Serialize)]
@@ -40,14 +45,27 @@ impl fmt::Display for AppError {
             AppError::BlockingError(e) => write!(f, "The running operation was blocked: {:?}", e),
             AppError::R2d2Error(e) => write!(f, "Database connection pool error: {:?}", e),
             AppError::UuidParseError(e) => write!(f, "UUID parse error: {:?}", e),
-            AppError::AuthError =>  write!(f, "Unauthorized request. Pass user access token in request header."),
+            AppError::AuthError => write!(
+                f,
+                "Unauthorized request. Pass user access token in request header."
+            ),
             AppError::HeaderParse(e) => write!(f, "Header parse error: {:?}", e),
             AppError::JWKSFetchError => write!(f, "Could not fetch JWKS"),
-            AppError::PermissionError => write!(f, "User authorized by token doesn't have needed access permission."),
-            AppError::OutsideRequestError(e) => write!(f, "Outside HTTP Request failed. Error: {:?}", e),
+            AppError::PermissionError => write!(
+                f,
+                "User authorized by token doesn't have needed access permission."
+            ),
+            AppError::OutsideRequestError(e) => {
+                write!(f, "Outside HTTP Request failed. Error: {:?}", e)
+            }
             AppError::UrlParse(e) => write!(f, "URL parse error: {:?}", e),
             AppError::JsonParse(e) => write!(f, "JSON parse error: {:?}", e),
+            AppError::UrlEncodedParse(e) => write!(f, "URLEncoded type parse error: {:?}", e),
             AppError::InvalidHeaderValue(e) => write!(f, "Invalid header value, error: {:?}", e),
+            AppError::HexParse(e) => write!(f, "Hex parse error: {:?}", e),
+            AppError::CryptoError(e) => write!(f, "Crypto operation error: {:?}", e),
+            AppError::GithubAuthError(e) => write!(f, "Github Auth error: {:?}", e),
+            AppError::GithubAPIError(e) => write!(f, "Github API error: {:?}", e),
         }
     }
 }
@@ -55,26 +73,31 @@ impl fmt::Display for AppError {
 impl actix_web::ResponseError for AppError {
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
-            .insert_header(ContentType::html())
+            .insert_header(ContentType::plaintext())
             .body(self.to_string())
     }
 
     fn status_code(&self) -> StatusCode {
         match self {
             AppError::RecordAlreadyExists => StatusCode::BAD_REQUEST,
-            AppError::RecordNotFound => StatusCode::NOT_FOUND,
-            AppError::DatabaseError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::BlockingError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::R2d2Error(_e) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::UuidParseError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::RecordNotFound
+            | AppError::HeaderParse(_)
+            | AppError::JsonParse(_)
+            | AppError::UrlEncodedParse(_)
+            | AppError::InvalidHeaderValue(_) => StatusCode::BAD_REQUEST,
+            AppError::DatabaseError(_)
+            | AppError::BlockingError(_)
+            | AppError::R2d2Error(_)
+            | AppError::UuidParseError(_)
+            | AppError::OutsideRequestError(_)
+            | AppError::CryptoError(_)
+            | AppError::UrlParse(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::AuthError => StatusCode::UNAUTHORIZED,
-            AppError::HeaderParse(_e) => StatusCode::BAD_REQUEST,
             AppError::JWKSFetchError => StatusCode::BAD_REQUEST,
             AppError::PermissionError => StatusCode::FORBIDDEN,
-            AppError::OutsideRequestError(_e) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::UrlParse(_e) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::JsonParse(_e) => StatusCode::BAD_REQUEST,
-            AppError::InvalidHeaderValue(_e) => StatusCode::BAD_REQUEST,
+            AppError::HexParse(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::GithubAuthError(_)
+            | AppError::GithubAPIError(_) => StatusCode::BAD_GATEWAY,
         }
     }
 }
@@ -134,5 +157,23 @@ impl From<serde_json::Error> for AppError {
 impl From<reqwest::header::InvalidHeaderValue> for AppError {
     fn from(e: reqwest::header::InvalidHeaderValue) -> Self {
         AppError::InvalidHeaderValue(e.to_string())
+    }
+}
+
+impl From<serde_urlencoded::de::Error> for AppError {
+    fn from(e: serde_urlencoded::de::Error) -> Self {
+        AppError::UrlEncodedParse(e.to_string())
+    }
+}
+
+impl From<hex::FromHexError> for AppError {
+    fn from(e: hex::FromHexError) -> Self {
+        AppError::HexParse(e.to_string())
+    }
+}
+
+impl From<ring::error::Unspecified> for AppError {
+    fn from(e: ring::error::Unspecified) -> Self {
+        AppError::CryptoError(e.to_string())
     }
 }

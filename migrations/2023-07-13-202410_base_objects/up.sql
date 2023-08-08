@@ -1,20 +1,20 @@
-create table user_roles (
-    id uuid default gen_random_uuid() primary key,
-    name varchar(50) not null,
-    created_at timestamp default now() not null,
-    updated_at timestamp default now() not null
-);
+-- create table user_roles (
+--     id uuid default gen_random_uuid() primary key,
+--     name varchar(50) not null,
+--     created_at timestamp default now() not null,
+--     updated_at timestamp default now() not null
+-- );
 
-create trigger update_updated_at_trigger before
-update
-    on user_roles for each row execute function update_updated_at();
+-- create trigger update_updated_at_trigger before
+-- update
+--     on user_roles for each row execute function update_updated_at();
 
 create table users (
     id uuid default gen_random_uuid() primary key,
     name varchar(200) not null,
-    role_id uuid references user_roles (id) not null,
+    -- role_id uuid references user_roles (id) not null,
     email varchar(255) unique not null,
-    last_token text unique default null,
+    access_token text unique default null,
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null
 );
@@ -22,6 +22,22 @@ create table users (
 create trigger update_updated_at_trigger before
 update
     on users for each row execute function update_updated_at();
+
+create table user_refresh_tokens (
+    user_id uuid references users (id) not null,
+    refresh_token_cypher bytea not null,
+    cypher_nonce bytea not null,
+    refresh_token_expires_in integer not null,
+    scope varchar(20) not null,
+    token_type varchar(20) not null,
+    created_at timestamp default now() not null,
+    updated_at timestamp default now() not null,
+    primary key (user_id)
+);
+
+create trigger update_updated_at_trigger before
+update
+    on user_refresh_tokens for each row execute function update_updated_at();
 
 create table repositories (
     id uuid default gen_random_uuid() primary key,

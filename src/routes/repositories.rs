@@ -70,14 +70,13 @@ async fn create_repo(
     let api_response = create_github_repo(&token, &input, pool.clone()).await?;
 
     if !api_response.status().is_success() && !api_response.status().is_informational() {
-        let status: reqwest::StatusCode = api_response.status();
         let response = HttpResponse::BadGateway()
             .content_type("text/plain")
             .body(
                 api_response
                     .text()
                     .await
-                    .unwrap_or_else(|e| format!("Github API request failed. Status: {s}, Error: {e}", s = status, e = e)),
+                    .unwrap_or_else(|e| AppError::GithubAPIError(e.to_string()).to_string())
             );
 
         return Ok(response);
@@ -128,10 +127,10 @@ async fn create_github_repo(token: &str, input: &InputRepository, pool: web::Dat
     .await?
     .map_err(AppError::from)?;
 
-    let api = github::GitHubAPI::new(&token)?;
+    let api = github::GitHubAPI::new()?;
     let api_response = match input.is_organization {
-        true => api.create_org_repo(&input.owner, input.params.clone()).await,
-        false => api.create_personal_repo(input.params.clone()).await,
+        true => api.create_org_repo(&token, &input.owner, input.params.clone()).await,
+        false => api.create_personal_repo(&token, input.params.clone()).await,
     }?;
 
     Ok(api_response)
