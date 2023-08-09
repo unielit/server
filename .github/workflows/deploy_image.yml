@@ -88,11 +88,10 @@ jobs:
       with:
         context: .
         platforms: ${{ matrix.platform }}
-        tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        outputs: type=image,name=${{ vars.DOCKER_IMAGE }}:${{ steps.meta.outputs.tags }},push-by-digest=true,name-canonical=true,push=true
+        outputs: type=image,name=${{ vars.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
     - name: extract go-build-cache from docker
       uses: overmindtech/buildkit-cache-dance/extract@main
