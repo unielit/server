@@ -29,6 +29,8 @@ diesel::table! {
         #[max_length = 50]
         owner -> Varchar,
         is_organization -> Bool,
+        #[max_length = 50]
+        design_file_sha -> Nullable<Varchar>,
         html_url -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,

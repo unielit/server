@@ -1,7 +1,7 @@
 use crate::errors::AppError;
 use crate::models::Result;
 use crate::schema::*;
-use crate::services::encrypt::{EncryptResponse, AES_256_GCM};
+use crate::services::encrypt::{EncryptResponse, Aes256Gcm};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use ring::aead::NONCE_LEN;
@@ -15,6 +15,7 @@ use uuid::Uuid;
 )]
 // #[diesel(belongs_to(UserRole, foreign_key = role_id))]
 #[diesel(table_name = users)]
+#[serde(rename_all = "camelCase")]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: Uuid,
@@ -43,6 +44,7 @@ pub enum UserKey<'a> {
 
 // #[derive(Queryable, Selectable, Identifiable, Serialize, ToSchema, Debug, PartialEq)]
 // #[diesel(table_name = user_roles)]
+// #[serde(rename_all = "camelCase")]
 // #[diesel(check_for_backend(diesel::pg::Pg))]
 // pub struct UserRole {
 //     pub id: Uuid,
@@ -52,6 +54,7 @@ pub enum UserKey<'a> {
 // }
 
 #[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct RoledUser {
     pub user: User,
 //     pub role: UserRole,
@@ -109,7 +112,7 @@ pub fn create_user(conn: &mut PgConnection, new_user: NewUser) -> Result<RoledUs
     })
 }
 
-pub fn find_user<'a>(conn: &mut PgConnection, key: UserKey<'a>) -> Result<RoledUser> {
+pub fn find_user(conn: &mut PgConnection, key: UserKey) -> Result<RoledUser> {
     use crate::schema::users::dsl::*;
 
     conn.transaction(|conn| {
@@ -195,7 +198,7 @@ pub fn save_user_token_data(
     use crate::schema::user_refresh_tokens::dsl::*;
     use crate::schema::users::dsl::*;
 
-    let aes_256_gcm = AES_256_GCM::new();
+    let aes_256_gcm = Aes256Gcm::new();
     let data = token_data.refresh_token.as_bytes().to_vec();
     let encrypt_response: EncryptResponse = aes_256_gcm.encrypt(data, [0u8, 0].to_vec())?;
 
@@ -246,12 +249,12 @@ pub fn get_user_refresh_token(conn: &mut PgConnection, id: Uuid) -> Result<Strin
         return Err(AppError::CryptoError("Wrong nonce length during decryption process.".to_string()));
     }
     
-    let aes_256_gcm = AES_256_GCM::new();
+    let aes_256_gcm = Aes256Gcm::new();
     let mut nonce = [0u8; NONCE_LEN];
     nonce.copy_from_slice(&data.cypher_nonce);
 
     let decrypted_token_data = aes_256_gcm.decrypt(data.refresh_token_cypher, [0u8, 0].to_vec(), nonce)?;
 
     String::from_utf8(decrypted_token_data)
-        .map_err(|e| AppError::CryptoError(format!("Failed to decode token binary data to utf8 string. Error: {}", e.to_string())))
+        .map_err(|e| AppError::CryptoError(format!("Failed to decode token binary data to utf8 string. Error: {}", e)))
 }

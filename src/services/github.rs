@@ -1,10 +1,9 @@
-use crate::{errors::AppError, models::Result};
+use crate::{
+    errors::AppError,
+    models::{repositories::RepositoryOwner, Result},
+};
 use reqwest::*;
-
-pub struct GitHubAPI {
-    client: Client,
-    base_url: Url,
-}
+use serde_json::json;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UserEmail {
@@ -62,10 +61,85 @@ pub struct User {
 
 #[derive(Deserialize)]
 pub struct Plan {
-    collaborators: i32,
-    name: String,
-    space: i32,
-    private_repos: i32,
+    pub collaborators: i32,
+    pub name: String,
+    pub space: i32,
+    pub private_repos: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileCommit {
+    pub content: Option<Content>,
+    pub commit: Commit,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Content {
+    pub name: String,
+    pub path: String,
+    pub sha: String,
+    pub size: i64,
+    pub url: String,
+    pub html_url: String,
+    pub git_url: String,
+    pub download_url: String,
+    pub r#type: String,
+    pub _links: Links,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Links {
+    #[serde(rename = "self")]
+    pub self_link: String,
+    pub git: String,
+    pub html: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Commit {
+    pub sha: String,
+    pub node_id: String,
+    pub url: String,
+    pub html_url: String,
+    pub author: CommitAgent,
+    pub committer: CommitAgent,
+    pub message: String,
+    pub tree: Tree,
+    pub parents: Vec<Parent>,
+    pub verification: Verification,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CommitAgent {
+    pub date: String,
+    pub name: String,
+    pub email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Tree {
+    pub url: String,
+    pub sha: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Parent {
+    pub url: String,
+    pub html_url: String,
+    pub sha: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Verification {
+    pub verified: bool,
+    pub reason: String,
+    pub signature: Option<String>,
+    pub payload: Option<String>,
+}
+
+pub struct GitHubAPI {
+    client: Client,
+    base_url: Url,
 }
 
 impl GitHubAPI {
@@ -95,7 +169,7 @@ impl GitHubAPI {
     pub async fn get_user_primary_email(&self, token: &str) -> Result<UserEmail> {
         let token_value = header::HeaderValue::from_str(&["Bearer ", token].concat())?;
         let mut url = self.base_url.clone();
-        url.set_path(&format!("/user/emails"));
+        url.set_path("/user/emails");
 
         let response = self
             .client
@@ -103,12 +177,12 @@ impl GitHubAPI {
             .header(header::AUTHORIZATION, token_value)
             .send()
             .await
-            .map_err(AppError::from)?;
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))?;
 
         let emails = response
             .json::<Vec<UserEmail>>()
             .await
-            .map_err(AppError::from)?;
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))?;
 
         let primary_email = emails.iter().find(|e| e.primary).cloned();
 
@@ -124,7 +198,7 @@ impl GitHubAPI {
     pub async fn get_auth_user(&self, token: &str) -> Result<User> {
         let token_value = header::HeaderValue::from_str(&["Bearer ", token].concat())?;
         let mut url = self.base_url.clone();
-        url.set_path(&format!("/user"));
+        url.set_path("/user");
 
         let response = self
             .client
@@ -132,9 +206,12 @@ impl GitHubAPI {
             .header(header::AUTHORIZATION, token_value)
             .send()
             .await
-            .map_err(AppError::from)?;
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))?;
 
-        response.json::<User>().await.map_err(AppError::from)
+        response
+            .json::<User>()
+            .await
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))
     }
 
     pub async fn create_org_repo(
@@ -153,7 +230,7 @@ impl GitHubAPI {
             .json(&body)
             .send()
             .await
-            .map_err(AppError::from)
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))
     }
 
     pub async fn create_personal_repo(
@@ -171,6 +248,44 @@ impl GitHubAPI {
             .json(&body)
             .send()
             .await
-            .map_err(AppError::from)
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))
+    }
+
+    // SHA is reequired if you are updating a file. The blob SHA of the file being replaced.
+    pub async fn save_file_content(
+        &self,
+        token: &str,
+        repo_owner: RepositoryOwner,
+        path: &str,
+        message: &str,
+        base64_content: &str,
+        sha: Option<&str>,
+    ) -> Result<FileCommit> {
+        let token_value = header::HeaderValue::from_str(&format!("Bearer {token}"))?;
+        let mut url = self.base_url.to_owned();
+        url.set_path(&format!(
+            "/repos/{}/{}/contents/{path}",
+            repo_owner.owner, repo_owner.name
+        ));
+
+        let json = json!({
+            "message" : message,
+            "content" : base64_content,
+            "sha" : sha
+        });
+
+        let response = self
+            .client
+            .put(url)
+            .header(header::AUTHORIZATION, token_value)
+            .json(&json)
+            .send()
+            .await
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))?;
+
+        response
+            .json::<FileCommit>()
+            .await
+            .map_err(|e| AppError::GithubAPIError(e.to_string()))
     }
 }

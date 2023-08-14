@@ -1,15 +1,11 @@
 use ring::aead::Aad;
-use ring::aead::Algorithm;
 use ring::aead::BoundKey;
 use ring::aead::Nonce;
 use ring::aead::NonceSequence;
 use ring::aead::OpeningKey;
 use ring::aead::SealingKey;
-use ring::aead::Tag;
 use ring::aead::UnboundKey;
-use ring::aead::AES_128_GCM;
 use ring::aead::AES_256_GCM;
-use ring::aead::CHACHA20_POLY1305;
 use ring::aead::NONCE_LEN;
 use ring::error::Unspecified;
 use ring::rand::SecureRandom;
@@ -67,16 +63,16 @@ impl NonceSequence for RandomNonceSequence {
     }
 }
 
-pub struct AES_256_GCM {
+pub struct Aes256Gcm {
     key: Vec<u8>,
 }
 
-impl AES_256_GCM {
+impl Aes256Gcm {
     pub fn new() -> Self {
         let key_string = env::var("AES_256_GCM_KEY").expect("AES_256_GCM_KEY must be available.");
         let key = hex::decode(key_string).expect("Expected to decode key from hex");
 
-        AES_256_GCM { key }
+        Aes256Gcm { key }
     }
 
     pub fn encrypt(&self, mut data: Vec<u8>, aad: Vec<u8>) -> Result<EncryptResponse, Unspecified> {

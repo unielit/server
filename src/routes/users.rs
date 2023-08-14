@@ -13,6 +13,7 @@ use uuid::*;
 use super::parse_auth_token;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct UserInput {
     name: String,
     // role_id: Uuid,

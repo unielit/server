@@ -72,7 +72,7 @@ impl GitHubAuth {
         params: GenerateAccessTokenParams,
     ) -> Result<GenerateAccessTokenResponse> {
         let mut url = self.base_url.clone();
-        url.set_path(&format!("/login/oauth/access_token"));
+        url.set_path("/login/oauth/access_token");
 
         let response = self
             .client
@@ -96,7 +96,7 @@ impl GitHubAuth {
         params: RefreshAccessTokenParams,
     ) -> Result<GenerateAccessTokenResponse> {
         let mut url = self.base_url.clone();
-        url.set_path(&format!("/login/oauth/access_token"));
+        url.set_path("/login/oauth/access_token");
 
         let response = self
             .client
@@ -193,7 +193,7 @@ async fn generate_access_token(
                     client_id: github_auth.client_id.clone(),
                     client_secret: github_auth.client_secret.clone(),
                     grant_type: "refresh_token".to_string(),
-                    refresh_token: refresh_token,
+                    refresh_token,
                 })
                 .await
                 .map_err(AppError::from)?
@@ -214,7 +214,7 @@ async fn save_access_token_response(
         .await?;
 
     let new_user = users::NewUser {
-        name: user.name.unwrap_or(user.login).clone(),
+        name: user.name.unwrap_or(user.login),
         email: primary_email.email.clone(),
         access_token: None,
     };

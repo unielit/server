@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 #[derive(Insertable, Queryable, Selectable, Identifiable, Serialize, ToSchema, Debug, PartialEq)]
 #[diesel(table_name = designs)]
+#[serde(rename_all = "camelCase")]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Design {
     pub id: Uuid,

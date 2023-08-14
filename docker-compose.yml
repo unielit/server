@@ -5,6 +5,9 @@ services:
     image: enwilco/unielit-server:main
     environment:
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID}"
+      AES_256_GCM_KEY: "${AES_256_GCM_KEY}"
     build:
       context: .
       dockerfile: Dockerfile      

@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 #[diesel(belongs_to(Design))]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[serde(rename_all = "camelCase")]
 pub struct Project {
     pub id: Uuid,
     pub name: String,
@@ -82,7 +83,7 @@ pub fn create_project(conn: &mut PgConnection, project_name: &str, repository_id
     })
 }
 
-pub fn find_project<'a>(conn: &mut PgConnection, key: ProjectKey<'a>) -> Result<Project> {
+pub fn find_project(conn: &mut PgConnection, key: ProjectKey) -> Result<Project> {
     use crate::schema::projects::dsl::*;
 
     match key {

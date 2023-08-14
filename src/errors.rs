@@ -5,7 +5,6 @@ use actix_web::{
 };
 use diesel::result::DatabaseErrorKind::UniqueViolation;
 use diesel::result::Error::{DatabaseError, NotFound};
-use reqwest;
 use std::fmt;
 
 #[derive(Debug)]

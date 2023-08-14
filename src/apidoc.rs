@@ -17,6 +17,7 @@ use utoipa::{
         routes::users::update_user_token,
         // routes::users::get_user_roles,
         routes::repositories::create_repo,
+        routes::repositories::save_repo_design,
         routes::projects::create_project,
         routes::projects::find_project,
         routes::projects::get_project,
@@ -33,6 +34,7 @@ use utoipa::{
             routes::users::UserInput,
             models::repositories::Repository,
             routes::repositories::InputRepository,
+            routes::repositories::SaveRepoDesign,
             models::projects::Project,
             routes::projects::InputProject,
         )

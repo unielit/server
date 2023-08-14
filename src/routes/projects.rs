@@ -13,6 +13,7 @@ use utoipa::ToSchema;
 use super::parse_auth_token;
 
 #[derive(Deserialize, ToSchema, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct InputProject {
     name: String,
     repo_id: Option<Uuid>,

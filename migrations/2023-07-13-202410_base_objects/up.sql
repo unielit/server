@@ -44,6 +44,7 @@ create table repositories (
     name varchar(50) not null,
     owner varchar(50) not null,
     is_organization boolean not null,
+    design_file_sha varchar(50),
     html_url text not null,
     created_at timestamp default now() not null,
     updated_at timestamp default now() not null,

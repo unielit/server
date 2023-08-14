@@ -20,7 +20,7 @@ pub async fn validate_token(token: &str) -> Result<bool> {
     .await
     .expect("failed to fetch jwks");
     let validations = vec![Validation::Issuer(authority), Validation::SubjectPresent];
-    let kid = match token_kid(&token) {
+    let kid = match token_kid(token) {
         Ok(res) => res.expect("failed to decode kid"),
         Err(_) => return Err(AppError::JWKSFetchError),
     };

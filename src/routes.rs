@@ -1,15 +1,14 @@
 use crate::{errors::AppError, models::Result};
 use actix_web::HttpRequest;
-use actix_web::{dev::ServiceRequest, Error, HttpResponse, http::header};
+use actix_web::{dev::ServiceRequest, http::header, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
-use mime;
 
-pub(super) mod projects;
-pub(super) mod users;
-pub(super) mod repositories;
-pub(super) mod designs;
 pub(super) mod auth;
+pub(super) mod designs;
+pub(super) mod projects;
+pub(super) mod repositories;
+pub(super) mod users;
 
 fn success<T>(res: T) -> HttpResponse
 where
@@ -21,7 +20,7 @@ where
 pub fn parse_auth_token(req: HttpRequest) -> Result<String> {
     Ok(req
         .headers()
-        .get("Authorization")
+        .get(header::AUTHORIZATION)
         .ok_or(AppError::AuthError)?
         .to_str()?
         .to_owned())
@@ -31,10 +30,7 @@ pub async fn validator(
     req: ServiceRequest,
     credentials: BearerAuth,
 ) -> core::result::Result<ServiceRequest, (Error, ServiceRequest)> {
-    let config = req
-        .app_data::<Config>()
-        .map(|data| data.clone())
-        .unwrap_or_default();
+    let config = req.app_data::<Config>().cloned().unwrap_or_default();
 
     if auth::validate_token(credentials.token())
         .await
