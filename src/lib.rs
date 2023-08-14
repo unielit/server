@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpServer, http::header};
+use actix_cors::Cors;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
@@ -40,12 +41,20 @@ impl Server {
             .expect("Failed to create PostgreSQL connection pool");
 
         run_migrations(&pool);
-        
+
         println!("Starting http server: localhost:{}", self.port);
 
         HttpServer::new(move || {
+            let cors = Cors::default()
+                .allowed_origin("https://locahost:5173")
+                .allowed_methods(vec!["GET", "POST", "PUT", "PATCH"])
+                .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                .allowed_header(header::CONTENT_TYPE)
+                .max_age(3600);
+
             App::new()
                 // .wrap(auth_middleware.clone())
+                .wrap(cors)
                 .app_data(web::Data::new(pool.clone()))
                 .configure(routes::users::configure)
                 .configure(routes::projects::configure)
