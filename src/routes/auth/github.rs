@@ -7,7 +7,7 @@ use crate::{
 };
 use actix_web::{web, Responder};
 use reqwest::*;
-use serde_json::json;
+use utoipa::ToSchema;
 use std::env;
 
 struct GitHubAuth {
@@ -17,8 +17,9 @@ struct GitHubAuth {
     client_secret: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, ToSchema, Debug)]
 #[serde(untagged)]
+#[serde(rename_all = "camelCase")]
 pub enum AccessTokenQuery {
     Code { code: String },
     AccessToken { access_token: String },
@@ -41,7 +42,7 @@ struct RefreshAccessTokenParams {
     refresh_token: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 struct GenerateAccessTokenResponse {
     access_token: String,
     expires_in: i32,
@@ -49,6 +50,13 @@ struct GenerateAccessTokenResponse {
     refresh_token_expires_in: i32,
     scope: String,
     token_type: String,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveAccessTokenResponse {
+    access_token: String,
+    expires_in: i32,
 }
 
 impl GitHubAuth {
@@ -152,6 +160,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             status = OK, 
             description = "Return a new access token and expiration time in seconds for the user",
             content_type = "application/json",
+            body = SaveAccessTokenResponse,
             example = json!({
                 "access_token" : "gnu_token",
                 "expires_in" : 28800,
@@ -234,8 +243,8 @@ async fn save_access_token_response(
     })
     .await??;
 
-    Ok(success(json!({
-        "access_token" : response.access_token,
-        "expires_in" : response.expires_in,
-    })))
+    Ok(success(SaveAccessTokenResponse { 
+        access_token: response.access_token, 
+        expires_in: response.expires_in 
+    }))
 }

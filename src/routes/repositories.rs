@@ -206,7 +206,7 @@ async fn save_repo_design<'a>(
     let info: SaveRepoDesign = info.into_inner();
     let content = info.content;
     let content_data = serde_json::to_vec(&content).map_err(AppError::from)?;
-    let base64_content = general_purpose::STANDARD_NO_PAD.encode(content_data);
+    let base64_content = general_purpose::STANDARD.encode(content_data);
 
     let file_commit = api
         .save_file_content(

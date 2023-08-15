@@ -9,6 +9,7 @@ use utoipa::{
     paths(
         routes::designs::get_design,
         routes::designs::update_design,
+
         routes::users::create_user,
         routes::users::find_user,
         routes::users::find_user_by_token,
@@ -16,27 +17,36 @@ use utoipa::{
         routes::users::update_user,
         routes::users::update_user_token,
         // routes::users::get_user_roles,
+
         routes::repositories::create_repo,
         routes::repositories::save_repo_design,
+
         routes::projects::create_project,
         routes::projects::find_project,
         routes::projects::get_project,
         routes::projects::get_user_projects,
         routes::projects::update_project,
+
         routes::auth::github::generate_access_token,
     ),
     components(
         schemas(
             models::designs::Design, 
+
             models::users::RoledUser, 
             // models::users::UserRole,
             models::users::User,
             routes::users::UserInput,
+
             models::repositories::Repository,
             routes::repositories::InputRepository,
             routes::repositories::SaveRepoDesign,
+
             models::projects::Project,
             routes::projects::InputProject,
+            
+            routes::auth::github::AccessTokenQuery,
+            routes::auth::github::SaveAccessTokenResponse,
         )
     ),
     tags(

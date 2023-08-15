@@ -18,12 +18,19 @@ where
 }
 
 pub fn parse_auth_token(req: HttpRequest) -> Result<String> {
-    Ok(req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .ok_or(AppError::AuthError)?
-        .to_str()?
-        .to_owned())
+    let bearer_token = req
+    .headers()
+    .get(header::AUTHORIZATION)
+    .ok_or(AppError::AuthError)?
+    .to_str()?
+    .to_owned();
+
+    let parts: Vec<&str> = bearer_token.split_whitespace().collect();
+    if parts.len() == 2 && parts[0] == "Bearer" {
+        return Ok(parts[1].to_string());
+    }
+
+    Err(AppError::AuthError)
 }
 
 pub async fn validator(

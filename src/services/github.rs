@@ -283,9 +283,13 @@ impl GitHubAPI {
             .await
             .map_err(|e| AppError::GithubAPIError(e.to_string()))?;
 
-        response
-            .json::<FileCommit>()
-            .await
-            .map_err(|e| AppError::GithubAPIError(e.to_string()))
+        if response.status().is_success() {
+            return response
+                .json::<FileCommit>()
+                .await
+                .map_err(|e| AppError::GithubAPIError(e.to_string()));
+        }
+
+        Err(AppError::GithubAPIError(response.text().await?))
     }
 }
