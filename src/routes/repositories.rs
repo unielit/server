@@ -219,7 +219,7 @@ async fn save_repo_design<'a>(
             DESIGN_FILE_NAME,
             &info.message,
             &base64_content,
-            None,
+            repo.design_file_sha.as_deref(),
         )
         .await?;
 
