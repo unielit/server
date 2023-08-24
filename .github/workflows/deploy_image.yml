@@ -8,10 +8,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    - uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} 
 
     - name: Cache dependencies
       uses: actions/cache@v3
@@ -35,6 +41,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     needs:
       - test
     strategy:
@@ -48,6 +56,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} 
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
 
@@ -60,21 +72,21 @@ jobs:
       with:
         images: ${{ vars.DOCKER_IMAGE }}
         tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
-    - name: Cache dependencies
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}            
+    
+    - name: Go Build Cache for Docker
       uses: actions/cache@v3
       with:
         path: go-build-cache
-        key: ${{ runner.os }}-go-build-cache-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-go-build-cache-${{ hashFiles('**/go.sum') }}
 
     - name: inject go-build-cache into docker
       uses: overmindtech/buildkit-cache-dance/inject@main
       with:
-        cache-source: go-build-cache   
+        cache-source: go-build-cache 
      
     - name: Login to Docker Hub
       uses: docker/login-action@v2
@@ -92,6 +104,9 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         outputs: type=image,name=${{ vars.DOCKER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+        ssh: |
+          default=${{ env.SSH_AUTH_SOCK }}
+          
 
     - name: extract go-build-cache from docker
       uses: overmindtech/buildkit-cache-dance/extract@main

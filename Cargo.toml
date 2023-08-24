@@ -33,3 +33,5 @@ url = "2.4.0"
 diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono", "uuid", "serde_json"] }
 diesel_migrations = "2.1.0"
 dotenv = "0.15.0"  
+
+unielit_core = { git = "ssh://git@github.com/unielit/core.git", package = "design_core" }
